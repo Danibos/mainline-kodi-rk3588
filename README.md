@@ -131,3 +131,7 @@ This project wouldn't exist without the work of many people who share their know
 - **[Armbian](https://www.armbian.com/)** for providing a solid, minimal base to build and test on.
 
 Thank you.
+
+## YouTube troubleshooting
+
+See [the verified 1080p workaround and YouTube 7.4.4 download patch](docs/YOUTUBE.md). AV1/4K playback has not been fixed by that workaround.

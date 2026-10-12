@@ -1,0 +1,12 @@
+--- a/resources/lib/youtube_plugin/youtube/client/player_client.py
++++ b/resources/lib/youtube_plugin/youtube/client/player_client.py
+@@ -869,7 +869,8 @@
+                 'android_testsuite_params',
+             )),
+             ('auth_enabled|no_kids|av1|vp9.2|avc1|surround_sound', (
+-                'android_vr',
++                # Disabled locally: ANDROID_VR video requests return HTTP 403.
++                # Upstream issue: anxdpanic/plugin.video.youtube#1483
+             )),
+             ('mpd', (
+             )),

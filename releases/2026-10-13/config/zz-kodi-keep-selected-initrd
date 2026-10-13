@@ -1,0 +1,16 @@
+#!/bin/sh
+# Run after Armbian's 99-uboot hook: keep uInitrd aligned with /boot/Image.
+set -eu
+selected_image=$(readlink /boot/Image) || exit 0
+selected_image=${selected_image##*/}
+case "$selected_image" in
+    vmlinuz-*) selected_version=${selected_image#vmlinuz-} ;;
+    *) exit 0 ;;
+esac
+selected_ramdisk="uInitrd-$selected_version"
+if [ -f "/boot/$selected_ramdisk" ]; then
+    temporary_link="/boot/.uInitrd.kodi-hook-$$"
+    trap 'rm -f "$temporary_link"' EXIT HUP INT TERM
+    ln -s "$selected_ramdisk" "$temporary_link"
+    mv -Tf "$temporary_link" /boot/uInitrd
+fi

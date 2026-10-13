@@ -1,0 +1,22 @@
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -774,6 +774,7 @@
+ 	if (ret)
+ 		return ret;
+ 	drm_connector_attach_colorspace_property(hdmi->connector);
++	drm_connector_attach_broadcast_rgb_property(hdmi->connector);
+ 
+ 	return devm_request_threaded_irq(dev, irq,
+ 					 cfg->ctrl_ops->hardirq_callback,
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -322,7 +322,8 @@
+ 
+ 	new_conn_state->max_bpc = max_bpc;
+ 	new_conn_state->max_requested_bpc = max_bpc;
+-	new_conn_state->hdmi.broadcast_rgb = DRM_HDMI_BROADCAST_RGB_AUTO;
++	/* Preserve the full-range RGB appliance default used by this build. */
++	new_conn_state->hdmi.broadcast_rgb = DRM_HDMI_BROADCAST_RGB_FULL;
+ }
+ EXPORT_SYMBOL(__drm_atomic_helper_connector_hdmi_reset);
+ 

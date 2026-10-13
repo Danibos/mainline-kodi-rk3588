@@ -1,0 +1,27 @@
+diff --git a/xbmc/dbwrappers/sqlitedataset.cpp b/xbmc/dbwrappers/sqlitedataset.cpp
+index f45cfd5..835cb50 100644
+--- a/xbmc/dbwrappers/sqlitedataset.cpp
++++ b/xbmc/dbwrappers/sqlitedataset.cpp
+@@ -202,8 +202,21 @@ int callback(void* res_ptr, int ncol, char** result, char** cols)
+   return 0;
+ }
+ 
+-int busy_callback(void*, int /*busyCount*/)
++// Maximum time to wait for a locked database before giving up.
++// Upstream retries forever, which lets any long-running writer (e.g. the
++// Jellyfin add-on syncing the library) freeze the GUI thread permanently:
++// CVideoPlayer::~CVideoPlayer() spins on m_outboundEvents while the job that
++// stores video settings is stuck here. Failing the query is far preferable.
++constexpr int SQLITE_BUSY_MAX_RETRIES = 100; // 100 x 100ms = 10s
++
++int busy_callback(void*, int busyCount)
+ {
++  if (busyCount >= SQLITE_BUSY_MAX_RETRIES)
++  {
++    CLog::LogF(LOGERROR, "database locked, giving up after {} retries ({}s)", busyCount,
++               (busyCount * 100) / 1000);
++    return 0;
++  }
+   KODI::TIME::Sleep(100ms);
+   return 1;
+ }

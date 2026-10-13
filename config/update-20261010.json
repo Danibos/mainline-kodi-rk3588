@@ -1,0 +1,27 @@
+{
+  "kernel": {
+    "version": "7.2.9",
+    "sha256": "b4c5dfbe51a364a6c7f03869200f88c8e1f77403539005f14b7fc6bc91b8d8ba",
+    "inindev_commit": "f0020946e9803d64459e4145a7d40736f8c86f21"
+  },
+  "kodi": {
+    "tag": "22.0rc1-Piers",
+    "commit": "28ea2eac1eb7af8fdcbd2672d933ce87f594be79"
+  },
+  "ffmpeg": {
+    "version": "9.0.2",
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e"
+  },
+  "libreelec_commit": "4c824a75301be9326bdac33cbe9bba05239361fe",
+  "build_jobs": 2,
+  "prefix": "/opt/kodi-rk3588/22.0rc1",
+  "kodi_platforms": [
+    "gbm",
+    "wayland"
+  ],
+  "inputstream_adaptive": {
+    "version": "22.3.22",
+    "branch": "Piers",
+    "commit": "e1645250fe946b42edd0ec12f86c287ce4331bf6"
+  }
+}

@@ -1,3 +1,43 @@
+.DS_Store
+debs/
+*.tar.gz
+*.tar.xz
 *.deb
+build/*.deb
+build/ffmpeg/
+build/patches/kernel/*.patch
+build/kodi/
+build/patches/
+
+# Ignorar el analisis y notes de fuera
+../analysis/
+../notes/
+
+# Arboles de fuentes (enormes, se clonan con build.sh)
+build/xbmc/
+build/inputstream.adaptive/
+build/visualization.*/
+build/mesa/
+
+# Copias de seguridad locales
+*.bak
+
+# Ficheros temporales de editores
 *.swp
 *.tmp
+
+# Respaldos privados del sistema y del arranque
+/backups/
+
+# Compilaciones aisladas de la actualización 2026-10-10
+/build/kernel-20261010/
+/build/kodi-20261010/
+/build/update-20261010/
+__pycache__/
+*.py[cod]
+
+/build/kodi-release-generic/
+/build/visualizations-20261012/
+
+/build/release-20261013/
+/build/youtube-release-20261013/

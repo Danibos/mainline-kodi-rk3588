@@ -1,0 +1,43 @@
+--- a/xbmc/network/TCPServer.cpp
++++ b/xbmc/network/TCPServer.cpp
+@@ -225,6 +225,17 @@
+           }
+           else
+           {
++#ifndef TARGET_WINDOWS
++            if (newconnection->m_socket >= FD_SETSIZE)
++            {
++              CLog::Log(LOGWARNING,
++                        "JSONRPC Server: Rejecting socket {} beyond select limit {}",
++                        newconnection->m_socket, FD_SETSIZE);
++              newconnection->Disconnect();
++              delete newconnection;
++              continue;
++            }
++#endif
+             CLog::Log(LOGINFO, "JSONRPC Server: New connection added");
+             m_connections.push_back(newconnection);
+           }
+@@ -287,6 +298,22 @@
+ 
+   started |= InitializeBlue();
+   started |= InitializeTCP();
++
++#ifndef TARGET_WINDOWS
++  for (auto it = m_servers.begin(); it != m_servers.end();)
++  {
++    if (*it >= FD_SETSIZE)
++    {
++      CLog::Log(LOGERROR, "JSONRPC Server: Listening socket {} beyond select limit {}", *it,
++                FD_SETSIZE);
++      closesocket(*it);
++      it = m_servers.erase(it);
++    }
++    else
++      ++it;
++  }
++  started = !m_servers.empty();
++#endif
+ 
+   if (started)
+   {

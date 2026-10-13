@@ -1,0 +1,35 @@
+diff --git a/xbmc/network/TCPServer.cpp b/xbmc/network/TCPServer.cpp
+index 6ffc739..bfa9bc8 100644
+--- a/xbmc/network/TCPServer.cpp
++++ b/xbmc/network/TCPServer.cpp
+@@ -179,7 +179,15 @@ void CTCPServer::Process()
+             }
+ 
+             if (response.empty())
+-              m_connections[i]->PushBuffer(this, buffer, nread);
++            {
++              // Only Process mutates or destroys clients. Dispatch may wait for
++              // GUI work which removes an announcer; keeping the connection-list
++              // lock here would deadlock with Announce holding the announcer lock.
++              CTCPClient* client = m_connections[i];
++              lock.unlock();
++              client->PushBuffer(this, buffer, nread);
++              lock.lock();
++            }
+ 
+             close = m_connections[i]->Closing();
+           }
+@@ -551,11 +559,13 @@ int CTCPServer::CTCPClient::GetPermissionFlags()
+ 
+ int CTCPServer::CTCPClient::GetAnnouncementFlags()
+ {
++  std::unique_lock lock(m_critSection);
+   return m_announcementflags;
+ }
+ 
+ bool CTCPServer::CTCPClient::SetAnnouncementFlags(int flags)
+ {
++  std::unique_lock lock(m_critSection);
+   m_announcementflags = flags;
+   return true;
+ }

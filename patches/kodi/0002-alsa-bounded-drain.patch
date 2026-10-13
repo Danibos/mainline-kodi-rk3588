@@ -1,0 +1,45 @@
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
+index 0a7f162..b450009 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
+@@ -21,6 +21,7 @@
+ #include "utils/log.h"
+ 
+ #include <algorithm>
++#include <errno.h>
+ #include <limits.h>
+ #include <set>
+ #include <sstream>
+@@ -988,7 +989,31 @@ void CAESinkALSA::Drain()
+   if (!m_pcm)
+     return;
+ 
+-  snd_pcm_drain(m_pcm);
++  // snd_pcm_drain() blocks until every queued frame has been played. While the
++  // HDMI link is re-training - which happens on every refresh rate switch, e.g.
++  // when playback stops - the device never drains and this call never returns.
++  // The AESink thread then hangs, ActiveAE stops answering DISPLAYLOST, and the
++  // GUI thread freezes with it. Wait for the drain, but not forever.
++  constexpr int drainTimeoutMs = 500;
++
++  snd_pcm_nonblock(m_pcm, 1);
++  int err = 0;
++  for (int waited = 0; waited <= drainTimeoutMs; waited += 10)
++  {
++    err = snd_pcm_drain(m_pcm);
++    if (err != -EAGAIN)
++      break;
++    KODI::TIME::Sleep(10ms);
++  }
++  snd_pcm_nonblock(m_pcm, 0);
++
++  if (err < 0)
++  {
++    CLog::Log(LOGWARNING, "CAESinkALSA::Drain - did not finish within {}ms ({}), dropping buffer",
++              drainTimeoutMs, snd_strerror(err));
++    snd_pcm_drop(m_pcm);
++  }
++
+   snd_pcm_prepare(m_pcm);
+ }
+ 

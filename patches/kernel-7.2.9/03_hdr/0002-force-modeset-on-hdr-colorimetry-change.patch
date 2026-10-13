@@ -1,0 +1,13 @@
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -905,7 +905,9 @@
+ 
+ 	if (old_conn_state->hdmi.broadcast_rgb != new_conn_state->hdmi.broadcast_rgb ||
+ 	    old_conn_state->hdmi.output_bpc != new_conn_state->hdmi.output_bpc ||
+-	    old_conn_state->hdmi.output_format != new_conn_state->hdmi.output_format) {
++	    old_conn_state->hdmi.output_format != new_conn_state->hdmi.output_format ||
++	    old_conn_state->colorspace != new_conn_state->colorspace ||
++	    old_conn_state->hdr_output_metadata != new_conn_state->hdr_output_metadata) {
+ 		struct drm_crtc *crtc = new_conn_state->crtc;
+ 		struct drm_crtc_state *crtc_state;
+ 

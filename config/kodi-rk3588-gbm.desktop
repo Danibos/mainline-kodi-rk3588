@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Kodi RK3588 on GBM
+Comment=Kodi 22 RC1 directly on DRM and GBM
+Exec=env PAN_MESA_DEBUG=noafbc /opt/kodi-rk3588/22.0rc1/bin/kodi-standalone --windowing=gbm
+TryExec=/opt/kodi-rk3588/22.0rc1/bin/kodi-standalone
+Type=Application
+Icon=kodi

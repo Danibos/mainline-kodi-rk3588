@@ -1,0 +1,192 @@
+--- a/xbmc/guilib/GUIVisualisationControl.h
++++ b/xbmc/guilib/GUIVisualisationControl.h
+@@ -11,6 +11,8 @@
+ #include "GUIControl.h"
+ #include "cores/AudioEngine/Interfaces/IAudioCallback.h"
+ 
++#include <array>
++#include <atomic>
+ #include <list>
+ #include <string>
+ #include <vector>
+@@ -67,6 +69,7 @@
+ 
+   std::string Name() const;
+   void UpdateTrack();
++  void SetAudioMeter() { m_audioMeter = true; }
+   bool HasPresets() const;
+   void SetPreset(int idx);
+   bool IsLocked() const;
+@@ -79,6 +82,12 @@
+   void DeInitVisualization();
+   inline void CreateBuffers();
+   inline void ClearBuffers();
++
++  bool m_audioMeter{false};
++  bool m_meterRegistered{false};
++  std::array<std::atomic<float>, 16> m_meterSamples{};
++  std::array<float, 16> m_meterDisplay{};
++  unsigned int m_meterTime{0};
+ 
+   bool m_initOK{false};
+   bool m_callStart{false};
+--- a/xbmc/guilib/GUIVisualisationControl.cpp
++++ b/xbmc/guilib/GUIVisualisationControl.cpp
+@@ -9,6 +9,7 @@
+ #include "GUIVisualisationControl.h"
+ 
+ #include "GUIComponent.h"
++#include "GUITexture.h"
+ #include "GUIInfoManager.h"
+ #include "GUIUserMessages.h"
+ #include "GUIWindowManager.h"
+@@ -37,6 +38,8 @@
+ #include "utils/log.h"
+ #include "windowing/WinSystem.h"
+ 
++#include <algorithm>
++#include <cmath>
+ #include <memory>
+ 
+ namespace
+@@ -83,7 +86,7 @@
+ }
+ 
+ CGUIVisualisationControl::CGUIVisualisationControl(const CGUIVisualisationControl& from)
+-  : CGUIControl(from)
++  : CGUIControl(from), m_audioMeter(from.m_audioMeter)
+ {
+   ControlType = GUICONTROL_VISUALISATION;
+ }
+@@ -154,6 +157,33 @@
+ {
+   const auto& components = CServiceBroker::GetAppComponents();
+   const auto appPlayer = components.GetComponent<CApplicationPlayer>();
++  if (m_audioMeter)
++  {
++    auto* ae = CServiceBroker::GetActiveAE();
++    const bool playing = appPlayer->IsPlayingAudio() || appPlayer->IsPlayingVideo();
++    if (ae && playing && !m_meterRegistered)
++    {
++      ae->RegisterAudioCallback(this);
++      m_meterRegistered = true;
++    }
++    if (!playing && m_meterRegistered)
++    {
++      if (ae)
++        ae->UnregisterAudioCallback(this);
++      m_meterRegistered = false;
++    }
++    const float decay = std::exp(-static_cast<float>(currentTime - m_meterTime) / 140.0f);
++    m_meterTime = currentTime;
++    for (size_t i = 0; i < m_meterDisplay.size(); ++i)
++    {
++      const float sample = m_meterSamples[i].exchange(0.0f);
++      const float target = playing && !appPlayer->IsPaused() ? sample : 0.0f;
++      m_meterDisplay[i] = std::max(target, m_meterDisplay[i] * decay);
++    }
++    MarkDirtyRegion();
++    CGUIControl::Process(currentTime, dirtyregions);
++    return;
++  }
+   if (appPlayer->IsPlayingAudio())
+   {
+     if (m_bInvalidated)
+@@ -196,6 +226,20 @@
+ 
+ void CGUIVisualisationControl::Render()
+ {
++  if (m_audioMeter)
++  {
++    const float step = m_width / m_meterDisplay.size();
++    for (size_t i = 0; i < m_meterDisplay.size(); ++i)
++    {
++      const float height = std::max(2.0f, m_height * std::sqrt(std::min(1.0f, m_meterDisplay[i])));
++      const float x = m_posX + i * step;
++      const float y = m_posY + (m_height - height) / 2.0f;
++      CGUITexture::DrawQuad(CRect(x, y, x + step * 0.55f, y + height), 0xE6FFFFFF);
++    }
++    CGUIControl::Render();
++    return;
++  }
++
+   if (m_instance && m_alreadyStarted)
+   {
+     auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+@@ -220,7 +264,7 @@
+   // if made invisible, start timer, only free addonptr after
+   // some period, configurable by window class
+   CGUIControl::UpdateVisibility(item);
+-  if (!IsVisible() && m_attemptedLoad)
++  if (!IsVisible() && (m_attemptedLoad || m_meterRegistered))
+     FreeResources();
+ }
+ 
+@@ -231,6 +275,12 @@
+ 
+ void CGUIVisualisationControl::FreeResources(bool immediately)
+ {
++  if (m_meterRegistered)
++  {
++    if (auto* ae = CServiceBroker::GetActiveAE())
++      ae->UnregisterAudioCallback(this);
++    m_meterRegistered = false;
++  }
+   DeInitVisualization();
+ 
+   CGUIControl::FreeResources(immediately);
+@@ -248,6 +298,21 @@
+ 
+ void CGUIVisualisationControl::OnAudioData(const float* audioData, unsigned int audioDataLength)
+ {
++  if (m_audioMeter)
++  {
++    if (!audioData || audioDataLength == 0)
++      return;
++    for (size_t i = 0; i < m_meterSamples.size(); ++i)
++    {
++      float peak = 0.0f;
++      const size_t end = (i + 1) * audioDataLength / m_meterSamples.size();
++      for (size_t j = i * audioDataLength / m_meterSamples.size(); j < end; ++j)
++        peak = std::max(peak, std::abs(audioData[j]));
++      m_meterSamples[i].store(peak);
++    }
++    return;
++  }
++
+   if (!m_instance || !m_alreadyStarted || !audioData || audioDataLength == 0)
+     return;
+ 
+--- a/xbmc/guilib/GUIControlFactory.cpp
++++ b/xbmc/guilib/GUIControlFactory.cpp
+@@ -108,6 +108,7 @@
+     {"togglebutton", CGUIControl::GUICONTROL_TOGGLEBUTTON},
+     {"videowindow", CGUIControl::GUICONTROL_VIDEO},
+     {"visualisation", CGUIControl::GUICONTROL_VISUALISATION},
++    {"audiometer", CGUIControl::GUICONTROL_VISUALISATION},
+     {"wraplist", CGUIControl::GUICONTAINER_WRAPLIST},
+ };
+ 
+@@ -1707,6 +1708,8 @@
+     case CGUIControl::GUICONTROL_VISUALISATION:
+     {
+       control = new CGUIVisualisationControl(parentID, id, posX, posY, width, height);
++      if (strType == "audiometer")
++        static_cast<CGUIVisualisationControl*>(control)->SetAudioMeter();
+       break;
+     }
+     case CGUIControl::GUICONTROL_RENDERADDON:
+--- a/xbmc/application/Application.cpp
++++ b/xbmc/application/Application.cpp
+@@ -1426,7 +1426,11 @@
+                                     .GetWindow<CGUIDialogVolumeBar>(WINDOW_DIALOG_VOLUME_BAR)
+                               : nullptr;
+   if (volumeBar)
++  {
+     volumeBar->SetProperty("ExternalVolume", "");
++    if (volumeStep)
++      volumeBar->SetProperty("VolumePulse", volumeBar->GetProperty("VolumePulse").asString() == "a" ? "b" : "a");
++  }
+ 
+   if (CServiceBroker::GetPeripherals().OnAction(action))
+   {

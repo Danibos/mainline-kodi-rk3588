@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Kodi RK3588 on Wayland
+Comment=Kodi 22 RC1 under the Weston compositor
+Exec=/usr/local/bin/kodi-rk3588-wayland
+TryExec=/usr/bin/weston
+Type=Application
+DesktopNames=Weston
+Icon=kodi

@@ -1,0 +1,62 @@
+{
+  "target": "Orange Pi 5 / Armbian Ubuntu 26.04 arm64",
+  "kernel_version": "7.2.9-1-kodi-rk3588",
+  "packages": [
+    {
+      "file": "ffmpeg-rk3588_9.0.2-20261013.1_arm64.deb",
+      "package": "ffmpeg-rk3588",
+      "version": "9.0.2-20261013.1",
+      "architecture": "arm64",
+      "role": "runtime",
+      "sha256": "a6682db67a8068a94a2ed92aeddedfeb05d0023b2fb5f86c055ec8cf52d24f26"
+    },
+    {
+      "file": "kodi-rk3588-inputstream-adaptive_22.3.22-20261013.1_arm64.deb",
+      "package": "kodi-rk3588-inputstream-adaptive",
+      "version": "22.3.22-20261013.1",
+      "architecture": "arm64",
+      "role": "runtime",
+      "sha256": "1c44f1a99a2298891ad81ead17d6802ca63675692cb1bd1e6b930c4ef5a3171b"
+    },
+    {
+      "file": "kodi-rk3588-visualizations_22.0rc1-20261013.1_arm64.deb",
+      "package": "kodi-rk3588-visualizations",
+      "version": "22.0rc1-20261013.1",
+      "architecture": "arm64",
+      "role": "runtime",
+      "sha256": "077cd1d3901d7cc159392a505ac87979b7a64149faa9368d305c7cd233671a98"
+    },
+    {
+      "file": "kodi-rk3588-youtube_7.4.4-20261013.1_all.deb",
+      "package": "kodi-rk3588-youtube",
+      "version": "7.4.4-20261013.1",
+      "architecture": "all",
+      "role": "runtime",
+      "sha256": "cd3574aa52d9fab7194601e2ad93f567ea8344ec7a1ac4e1de0323e1c4c96fd7"
+    },
+    {
+      "file": "kodi-rk3588_22.0rc1-20261013.1_arm64.deb",
+      "package": "kodi-rk3588",
+      "version": "22.0rc1-20261013.1",
+      "architecture": "arm64",
+      "role": "runtime",
+      "sha256": "92919abdacb22339e96b2f2cc5c1ce7b0382d5ed7c462ea96ccb5a5e065f6a8c"
+    },
+    {
+      "file": "linux-headers-7.2.9-1-kodi-rk3588_7.2.9-2_arm64.deb",
+      "package": "linux-headers-7.2.9-1-kodi-rk3588",
+      "version": "7.2.9-2",
+      "architecture": "arm64",
+      "role": "headers",
+      "sha256": "3f099bd098ae41d35c07b58021e270b7d98335b423477ae28f92f98398ca99bf"
+    },
+    {
+      "file": "linux-image-7.2.9-1-kodi-rk3588_7.2.9-2_arm64.deb",
+      "package": "linux-image-7.2.9-1-kodi-rk3588",
+      "version": "7.2.9-2",
+      "architecture": "arm64",
+      "role": "kernel",
+      "sha256": "abcd6ad69401dc87f6e34dc73ff88b1fae09473670280f87149c6a1bf8c2af4f"
+    }
+  ]
+}

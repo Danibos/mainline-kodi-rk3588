@@ -1,0 +1,84 @@
+--- a/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp
+@@ -14,6 +14,9 @@
+ #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+ #include "utils/log.h"
+ 
++#include <cstdlib>
++#include <string_view>
++
+ using namespace KODI::WINDOWING::GBM;
+ using namespace KODI::WINDOWING::LINUX;
+ 
+@@ -73,17 +76,17 @@
+ 
+ bool CWinSystemGbmEGLContext::ChooseEGLConfig(EGLint renderableType, int bitDepth)
+ {
+-  // Pick the highest active output format whose bpp is in range for the
+-  // requested bit depth. Policy: when bitDepth > 8, accept only entries
+-  // with bpp >= 10 and bpp <= bitDepth (do not silently fall back to 8).
+-  // When bitDepth <= 8, accept entries with bpp <= 8.
++  const char* mesaDebug = std::getenv("PAN_MESA_DEBUG");
++  const bool linearOnly = mesaDebug && std::string_view(mesaDebug).find("noafbc") != std::string_view::npos;
+   auto outputformats = m_DRM->GetOutputFormats();
+ 
+   std::vector<outputformat> candidates;
+   std::ranges::copy_if(outputformats, std::back_inserter(candidates),
+-                       [bitDepth](const outputformat& format)
++                       [bitDepth, linearOnly](const outputformat& format)
+                        {
+                          if (!format.active)
++                           return false;
++                         if (linearOnly && std::ranges::find(format.modifiers, DRM_FORMAT_MOD_LINEAR) == format.modifiers.end())
+                            return false;
+                          if (bitDepth > 8)
+                            return format.bpp >= 10 && format.bpp <= bitDepth;
+@@ -95,6 +98,12 @@
+   {
+     if (m_eglContext.ChooseConfig(renderableType, format.drm, false, format.alpha))
+       return true;
++  }
++
++  if (linearOnly && bitDepth > 8)
++  {
++    CLog::Log(LOGWARNING, "[GBM] No linear {}-bit output format; using 8-bit output with AFBC disabled", bitDepth);
++    return ChooseEGLConfig(renderableType, 8);
+   }
+ 
+   return false;
+--- a/xbmc/windowing/gbm/drm/DRMAtomic.cpp
++++ b/xbmc/windowing/gbm/drm/DRMAtomic.cpp
+@@ -15,6 +15,7 @@
+ #include "guilib/GUIWindowManager.h"
+ #include "settings/Settings.h"
+ #include "utils/log.h"
++#include "utils/ScopeGuard.h"
+ 
+ #include <chrono>
+ #include <errno.h>
+@@ -169,11 +170,6 @@
+       m_atomicRequestQueue.pop_front();
+   }
+ 
+-  if (m_inFenceFd != -1)
+-  {
+-    close(m_inFenceFd);
+-    m_inFenceFd = -1;
+-  }
+ 
+   m_atomicRequestQueue.emplace_back(std::make_unique<CDRMAtomicRequest>());
+   m_req = m_atomicRequestQueue.back().get();
+@@ -181,6 +177,13 @@
+ 
+ void CDRMAtomic::FlipPage(struct gbm_bo* bo, bool rendered, bool videoLayer, bool async)
+ {
++  KODI::UTILS::CScopeGuard<int, -1, void(int)> fenceGuard(
++      [this](int fd)
++      {
++        close(fd);
++        m_inFenceFd = -1;
++      },
++      m_inFenceFd);
+   struct drm_fb* drm_fb = nullptr;
+   uint32_t flags = 0;
+ 

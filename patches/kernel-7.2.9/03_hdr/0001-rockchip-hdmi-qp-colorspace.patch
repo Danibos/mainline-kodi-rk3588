@@ -1,0 +1,23 @@
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -21,6 +21,7 @@
+ #include <drm/bridge/dw_hdmi_qp.h>
+ #include <drm/display/drm_hdmi_helper.h>
+ #include <drm/drm_bridge_connector.h>
++#include <drm/drm_connector.h>
+ #include <drm/drm_managed.h>
+ #include <drm/drm_of.h>
+ #include <drm/drm_probe_helper.h>
+@@ -768,6 +769,12 @@
+ 		return dev_err_probe(dev, PTR_ERR(hdmi->connector),
+ 				     "Failed to init bridge connector\n");
+ 
++	/* Signal HDR10 BT.2020 colorimetry to the HDMI sink. */
++	ret = drm_mode_create_hdmi_colorspace_property(hdmi->connector, 0);
++	if (ret)
++		return ret;
++	drm_connector_attach_colorspace_property(hdmi->connector);
++
+ 	return devm_request_threaded_irq(dev, irq,
+ 					 cfg->ctrl_ops->hardirq_callback,
+ 					 cfg->ctrl_ops->irq_callback,

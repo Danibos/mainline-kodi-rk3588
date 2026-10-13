@@ -1,0 +1,28 @@
+diff --git a/resources/lib/youtube_plugin/kodion/settings/abstract_settings.py b/resources/lib/youtube_plugin/kodion/settings/abstract_settings.py
+index 60ee31a..2e19489 100644
+--- a/resources/lib/youtube_plugin/kodion/settings/abstract_settings.py
++++ b/resources/lib/youtube_plugin/kodion/settings/abstract_settings.py
+@@ -578,7 +578,8 @@ class AbstractSettings(object):
+             return self.set_int(SETTINGS.MPD_QUALITY_SELECTION, value)
+         if not self.use_mpd_videos():
+             return []
+-        value = self.get_int(SETTINGS.MPD_QUALITY_SELECTION, 4)
++        # This RK3588 release supports YouTube DASH up to 1080p.
++        value = min(4, self.get_int(SETTINGS.MPD_QUALITY_SELECTION, 4))
+         return [quality
+                 for key, quality in sorted(self._QUALITY_SELECTIONS.items(),
+                                            reverse=True)
+diff --git a/resources/settings.xml b/resources/settings.xml
+index 4d1df08..0641cac 100644
+--- a/resources/settings.xml
++++ b/resources/settings.xml
+@@ -58,9 +58,6 @@
+                             <option label="30011">2</option>  <!-- 480p -->
+                             <option label="30012">3</option>  <!-- 720p (HD) -->
+                             <option label="30013">4</option>  <!-- 1080p (FHD) -->
+-                            <option label="30725">5</option>  <!-- 1440p (QHD) -->
+-                            <option label="30014">6</option>  <!-- 2160p (4K) -->
+-                            <option label="30015">7</option>  <!-- 4320p (8K) -->
+                         </options>
+                     </constraints>
+                     <dependencies>

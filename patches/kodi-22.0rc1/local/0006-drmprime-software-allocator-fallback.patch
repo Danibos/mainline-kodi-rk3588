@@ -1,0 +1,57 @@
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecDRMPRIME.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecDRMPRIME.cpp
+@@ -18,6 +18,7 @@
+ #include "settings/SettingsComponent.h"
+ #include "settings/lib/Setting.h"
+ #include "threads/SingleLock.h"
++#include "utils/BufferObject.h"
+ #include "utils/CPUInfo.h"
+ #include "utils/StringUtils.h"
+ #include "utils/log.h"
+@@ -302,6 +303,13 @@
+     return false;
+   }
+ 
++  const AVCodecHWConfig* pConfig = FindHWConfig(pCodec);
++  if (!pConfig && !CBufferObject::GetBufferObject(true))
++  {
++    CLog::Log(LOGINFO, "CDVDVideoCodecDRMPRIME::{} - no DMA allocator for software decoding; using FFmpeg", __FUNCTION__);
++    return false;
++  }
++
+   CLog::Log(LOGINFO, "CDVDVideoCodecDRMPRIME::{} - using decoder {}", __FUNCTION__,
+             pCodec->long_name ? pCodec->long_name : pCodec->name);
+ 
+@@ -311,7 +319,6 @@
+ 
+   m_hints = hints;
+ 
+-  const AVCodecHWConfig* pConfig = FindHWConfig(pCodec);
+   if (pConfig && (pConfig->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX))
+   {
+     const char* type = av_hwdevice_get_type_name(pConfig->device_type);
+--- a/xbmc/cores/VideoPlayer/Buffers/VideoBufferDMA.cpp
++++ b/xbmc/cores/VideoPlayer/Buffers/VideoBufferDMA.cpp
+@@ -106,7 +106,7 @@
+ 
+ bool CVideoBufferDMA::Alloc()
+ {
+-  if (!m_bo->CreateBufferObject(m_size))
++  if (!m_bo || !m_bo->CreateBufferObject(m_size))
+     return false;
+ 
+   m_fd = m_bo->GetFd();
+@@ -177,8 +177,11 @@
+ 
+ void CVideoBufferDMA::Destroy()
+ {
+-  m_bo->ReleaseMemory();
+-  m_bo->DestroyBufferObject();
++  if (m_bo)
++  {
++    m_bo->ReleaseMemory();
++    m_bo->DestroyBufferObject();
++  }
+ 
+   for (auto& offset : m_offsets)
+     offset = 0;

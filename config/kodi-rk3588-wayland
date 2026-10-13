@@ -1,0 +1,5 @@
+#!/bin/sh
+# Weston owns DRM; Kodi uses its Wayland socket.
+exec /usr/bin/weston --backend=drm --renderer=gl --shell=kiosk-shell.so \
+    --no-config --idle-time=0 -- \
+    /opt/kodi-rk3588/22.0rc1/bin/kodi-standalone --windowing=wayland

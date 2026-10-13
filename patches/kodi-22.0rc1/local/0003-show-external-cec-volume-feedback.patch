@@ -1,0 +1,39 @@
+--- a/xbmc/application/Application.cpp
++++ b/xbmc/application/Application.cpp
+@@ -47,6 +47,7 @@
+ #include "application/ApplicationSkinHandling.h"
+ #include "application/ApplicationStackHelper.h"
+ #include "application/ApplicationVolumeHandling.h"
++#include "dialogs/GUIDialogVolumeBar.h"
+ #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+ #include "cores/FFmpeg.h"
+ #include "cores/playercorefactory/PlayerCoreFactory.h"
+@@ -1417,8 +1418,28 @@
+     }
+   }
+ 
++  const bool volumeStep = action.GetID() == ACTION_VOLUME_UP ||
++                          action.GetID() == ACTION_VOLUME_DOWN;
++  const bool volumeAction = volumeStep || action.GetID() == ACTION_VOLUME_SET ||
++                            action.GetID() == ACTION_MUTE;
++  auto* volumeBar = volumeAction ? CServiceBroker::GetGUI()->GetWindowManager()
++                                    .GetWindow<CGUIDialogVolumeBar>(WINDOW_DIALOG_VOLUME_BAR)
++                              : nullptr;
++  if (volumeBar)
++    volumeBar->SetProperty("ExternalVolume", "");
++
+   if (CServiceBroker::GetPeripherals().OnAction(action))
++  {
++    if (volumeBar && volumeStep)
++    {
++      volumeBar->SetProperty("ExternalVolume", "true");
++      volumeBar->SetProperty("ExternalVolumeDirection",
++                             action.GetID() == ACTION_VOLUME_UP ? "+" : "−");
++      GetComponent<CApplicationVolumeHandling>()->ShowVolumeBar(&action);
++      volumeBar->SetAutoClose(1000);
++    }
+     return true;
++  }
+ 
+   if (action.GetID() == ACTION_MUTE)
+   {

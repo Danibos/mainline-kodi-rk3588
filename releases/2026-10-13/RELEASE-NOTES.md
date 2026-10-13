@@ -1,10 +1,20 @@
-## Kodi RK3588 · 2026.10.13
+# Kodi RK3588 — 2026.10.13
 
-- Añadido soporte Wayland.
-- Arreglada la reproducción de YouTube hasta 1080p.
-- Incluido InputStream Adaptive.
-- CEC integrado, sin parche manual posterior.
-- Añadidos cinco visualizadores.
-- Actualizado el kernel a 7.2.9 y mejoras de estabilidad.
+- Added Wayland support.
+- Fixed YouTube playback up to 1080p.
+- Included InputStream Adaptive.
+- Integrated HDMI-CEC support.
+- Added five music visualizers.
+- Updated to kernel 7.2.9, FFmpeg 9.0.2 and Kodi 22 RC1, with stability fixes.
 
-Para Orange Pi 5 con Armbian/Ubuntu 26.04 arm64. Instalación: extraer la entrega y ejecutar `sudo ./install.sh`. Conserva las preferencias y el kernel anterior. YouTube AV1/4K sigue pendiente.
+## Install
+
+Requires Orange Pi 5 with Armbian/Ubuntu 26.04 arm64 and an ext4 root filesystem.
+
+Download and extract the release archive, then run:
+
+```sh
+sudo ./install.sh
+```
+
+Restart and select Kodi GBM or Kodi Wayland at login.

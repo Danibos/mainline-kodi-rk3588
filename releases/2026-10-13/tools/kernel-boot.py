@@ -23,27 +23,27 @@ def output(*args):
 
 def validate_root():
     if output('findmnt', '-n', '-o', 'FSTYPE', '/') != 'ext4':
-        raise RuntimeError('Esta release requiere una partición raíz ext4.')
+        raise RuntimeError('This release requires an ext4 root filesystem.')
     source = output('findmnt', '-n', '-o', 'SOURCE', '/')
     if not re.fullmatch(r'/dev/(?:nvme[0-9]+n[0-9]+p[0-9]+|mmcblk[0-9]+p[0-9]+|sd[a-z]+[0-9]+)', source):
-        raise RuntimeError(f'Formato de partición raíz no soportado: {source}')
+        raise RuntimeError(f'Unsupported root partition: {source}')
     uuid = output('blkid', '-s', 'UUID', '-o', 'value', source)
     environment = (BOOT / 'armbianEnv.txt').read_text().splitlines()
     if f'rootdev=UUID={uuid}' not in environment:
-        raise RuntimeError('El UUID de raíz no coincide con armbianEnv.txt')
+        raise RuntimeError('Root UUID does not match armbianEnv.txt')
     entries = [line.split() for line in Path('/etc/fstab').read_text().splitlines()
                if line.strip() and not line.lstrip().startswith('#')]
     if any(len(fields) < 4 for fields in entries):
-        raise RuntimeError('fstab contiene entradas incompletas')
+        raise RuntimeError('fstab contains incomplete entries')
     if not any(fields[0] == f'UUID={uuid}' and fields[1] == '/' for fields in entries):
-        raise RuntimeError('El UUID de raíz no coincide con fstab')
+        raise RuntimeError('Root UUID does not match fstab')
 
 
 def validate_config(config):
     lines = config.read_text().splitlines()
     for symbol in REQUIRED:
         if f'CONFIG_{symbol}=y' not in lines:
-            raise RuntimeError(f'El arranque NVMe exige CONFIG_{symbol}=y')
+            raise RuntimeError(f'Boot requires CONFIG_{symbol}=y')
 
 
 def prepare_image(image):
@@ -54,7 +54,7 @@ def prepare_image(image):
         return
     payload = gzip.decompress(image.read_bytes())
     if payload[56:60] != b'ARM\x64':
-        raise RuntimeError('La imagen descomprimida no tiene cabecera ARM64')
+        raise RuntimeError('Decompressed image has no ARM64 header')
     temporary = image.with_name(image.name + '.uncompressed')
     temporary.write_bytes(payload)
     shutil.copymode(image, temporary)
@@ -67,23 +67,23 @@ def validate_candidate(version):
     with image.open('rb') as stream:
         header = stream.read(64)
     if header[56:60] != b'ARM\x64':
-        raise RuntimeError('La imagen no tiene cabecera ARM64')
+        raise RuntimeError('Image has no ARM64 header')
     dtb = BOOT / f'dtb-{version}/rockchip/rk3588s-orangepi-5.dtb'
     with dtb.open('rb') as stream:
         if stream.read(4) != b'\xd0\x0d\xfe\xed':
-            raise RuntimeError('DTB de Orange Pi 5 inválido')
+            raise RuntimeError('Invalid Orange Pi 5 DTB')
     if not Path(f'/lib/modules/{version}').is_dir():
-        raise RuntimeError('No existen los módulos del kernel')
+        raise RuntimeError('Kernel modules are missing')
     ramdisk = (BOOT / f'uInitrd-{version}').read_bytes()
     initrd = (BOOT / f'initrd.img-{version}').read_bytes()
     if ramdisk[:4] != b'\x27\x05\x19\x56' or ramdisk[64:] != initrd:
-        raise RuntimeError('uInitrd no corresponde al initramfs de esta versión')
+        raise RuntimeError('uInitrd does not match this kernel initramfs')
     if int.from_bytes(ramdisk[24:28], 'big') != zlib.crc32(initrd):
-        raise RuntimeError('CRC de uInitrd incorrecto')
+        raise RuntimeError('Invalid uInitrd CRC')
     inventory = output('lsinitramfs', str(BOOT / f'initrd.img-{version}'))
     versions = set(re.findall(r'(?:usr/)?lib/modules/([^/\n]+)', inventory))
     if versions != {version}:
-        raise RuntimeError(f'Versiones inesperadas en initramfs: {versions}')
+        raise RuntimeError(f'Unexpected versions in initramfs: {versions}')
 
 
 def targets(version):
@@ -110,18 +110,18 @@ def main():
                         help='Switch all boot links after validating the candidate')
     args = parser.parse_args()
     if args.headers_deb and not args.image_deb:
-        parser.error('--headers-deb requiere --image-deb')
+        parser.error('--headers-deb requires --image-deb')
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.+_-]*', args.version):
-        parser.error('Versión inválida')
+        parser.error('Invalid version')
     if os.geteuid() != 0:
-        parser.error('Ejecutar con sudo; también se requiere para verificar UUID')
+        parser.error('Run with sudo to verify the root UUID')
     validate_root()
     if args.image_deb or args.activate:
         previous = {}
         for name in LINKS:
             path = BOOT / name
             if not path.is_symlink():
-                raise RuntimeError(f'Se esperaba un enlace, no un archivo: {path}')
+                raise RuntimeError(f'Expected a symbolic link: {path}')
             previous[name] = os.readlink(path)
         backup = Path('/var/backups/kodi-kernel') / datetime.now().strftime('%Y%m%d-%H%M%S')
         backup.mkdir(parents=True, mode=0o700)
@@ -132,9 +132,9 @@ def main():
             if args.image_deb:
                 package = args.image_deb.resolve()
                 if output('dpkg-deb', '-f', str(package), 'Package') != f'linux-image-{args.version}':
-                    raise RuntimeError('El paquete no es la imagen solicitada')
+                    raise RuntimeError('Package does not contain the requested kernel image')
                 if output('dpkg-deb', '-f', str(package), 'Architecture') != 'arm64':
-                    raise RuntimeError('Arquitectura de paquete incorrecta')
+                    raise RuntimeError('Incorrect package architecture')
                 # Validate root-storage drivers before any kernel postinst can alter boot.
                 with tempfile.TemporaryDirectory(prefix='kodi-kernel-check-') as staging:
                     subprocess.run(['dpkg-deb', '-x', str(package), staging], check=True)
@@ -146,9 +146,9 @@ def main():
                 if args.headers_deb:
                     headers = args.headers_deb.resolve()
                     if output('dpkg-deb', '-f', str(headers), 'Package') != f'linux-headers-{args.version}':
-                        raise RuntimeError('El paquete de cabeceras no corresponde al kernel')
+                        raise RuntimeError('Headers package does not match the kernel')
                     if output('dpkg-deb', '-f', str(headers), 'Architecture') != 'arm64':
-                        raise RuntimeError('Arquitectura de cabeceras incorrecta')
+                        raise RuntimeError('Incorrect headers architecture')
                     packages.append(str(headers))
                 subprocess.run(['dpkg', '-i', *packages], check=True)
                 # Armbian's initramfs hook may have moved only uInitrd. Restore the
@@ -167,14 +167,14 @@ def main():
                 set_links(targets(args.version))
                 if any(os.readlink(BOOT / name) != target
                        for name, target in targets(args.version).items()):
-                    raise RuntimeError('Los enlaces de arranque no coinciden')
-            print(f'Kernel {args.version} validado; activado={args.activate}; respaldo={backup}')
+                    raise RuntimeError('Boot links do not match the selected kernel')
+            print(f'Kernel {args.version} verified; activated={args.activate}; backup={backup}')
         except BaseException:
             set_links(previous)
             raise
     else:
         validate_candidate(args.version)
-        print(f'Kernel {args.version}: Raíz, imagen, DTB e initramfs comprobados')
+        print(f'Kernel {args.version}: root, image, DTB and initramfs verified')
 
 
 if __name__ == '__main__':

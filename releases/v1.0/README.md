@@ -15,7 +15,7 @@ Kodi 22.0 with hardware video decoding for RK3588 (Orange Pi 5, etc.).
 > **Note:** HDR is not working yet. 4K HDR content plays in SDR. Under investigation.
 
 **Audio**: multichannel passthrough (AC3, DTS, EAC3, TrueHD, DTS-HD).
-**CEC**: HDMI control (tested with Sony HT-RT3 soundbar + TCL TV).
+**CEC**: HDMI control.
 
 ## Files
 

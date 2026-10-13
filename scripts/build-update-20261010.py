@@ -29,7 +29,7 @@ def download(url, destination, expected):
     with destination.open('rb') as source:
         digest = hashlib.file_digest(source, 'sha256').hexdigest()
     if digest != expected:
-        raise RuntimeError(f'Checksum incorrecto: {destination}')
+        raise RuntimeError(f'Checksum mismatch: {destination}')
 
 
 def apply(source, patches):
@@ -42,7 +42,7 @@ def prepare_tar(source, archive, url, checksum, patches):
     if (source / MARKER).exists():
         return
     if source.exists():
-        raise RuntimeError(f'Árbol sin marca de preparación; conservar y revisar: {source}')
+        raise RuntimeError(f'Source tree has no preparation marker; inspect before continuing: {source}')
     run('tar', '--no-same-owner', '-xf', archive, '-C', source.parent)
     apply(source, patches)
     (source / MARKER).write_text('prepared\n')
@@ -53,7 +53,7 @@ def kernel(prepare_only):
         state = subprocess.check_output(['systemctl', '--user', 'show', unit,
                                          '-p', 'ActiveState', '--value'], text=True).strip()
         if state in ('active', 'activating'):
-            raise RuntimeError('El kernel ya se está compilando; no modificar su configuración.')
+            raise RuntimeError('Kernel build is already running; configuration cannot be changed.')
     base = ROOT / 'build/kernel-20261010'
     base.mkdir(parents=True, exist_ok=True)
     version = MANIFEST['kernel']['version']
@@ -73,7 +73,7 @@ def kernel(prepare_only):
     for option in ('DRM_DW_HDMI_QP_CEC', 'BLK_DEV_NVME', 'NVME_CORE',
                    'PCIE_ROCKCHIP_DW', 'EXT4_FS'):
         if f'CONFIG_{option}=y' not in config:
-            raise RuntimeError(f'Configuración requerida ausente: {option}')
+            raise RuntimeError(f'Required configuration is missing: {option}')
     if not prepare_only:
         run('make', '-j2', 'ARCH=arm64', 'LOCALVERSION=-1-kodi-rk3588',
             'KBUILD_BUILD_VERSION=1', 'bindeb-pkg', cwd=source)
@@ -84,7 +84,7 @@ def ffmpeg(prepare_only):
         state = subprocess.check_output(['systemctl', '--user', 'show', unit,
                                          '-p', 'ActiveState', '--value'], text=True).strip()
         if state in ('active', 'activating'):
-            raise RuntimeError('FFmpeg ya se está compilando; no reconfigurar el árbol activo.')
+            raise RuntimeError('FFmpeg build is already running; configuration cannot be changed.')
     WORK.mkdir(parents=True, exist_ok=True)
     version = MANIFEST['ffmpeg']['version']
     source = WORK / f'ffmpeg-{version}'
@@ -113,7 +113,7 @@ def kodi(prepare_only, profile="generic"):
             'https://github.com/xbmc/xbmc.git', source)
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip()
     if commit != MANIFEST['kodi']['commit']:
-        raise RuntimeError('El commit de Kodi no coincide con el manifiesto')
+        raise RuntimeError('Kodi commit does not match the manifest')
     if not (source / MARKER).exists():
         patches = [ROOT / 'patches/kodi/0001-sqlite-busy-timeout.patch',
                    ROOT / 'patches/kodi/0003-alsa-retry-hw-params.patch']

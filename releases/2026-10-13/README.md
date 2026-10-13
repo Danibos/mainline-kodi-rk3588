@@ -1,6 +1,6 @@
 # Kodi RK3588 · actualización 2026.10.13
 
-**Preparada para revisión; todavía no publicada.** Para Orange Pi 5 arm64 con Armbian basado en Ubuntu 26.04 y arranque compatible con Image/uInitrd/DTB. Kodi 22.0 RC1 sigue siendo una versión candidata.
+**Preparada para revisión; todavía no publicada.** Para Orange Pi 5 arm64 con Armbian basado en Ubuntu 26.04 con raíz ext4 y arranque compatible con Image/uInitrd/DTB. Kodi 22.0 RC1 sigue siendo una versión candidata.
 
 ## Novedades
 

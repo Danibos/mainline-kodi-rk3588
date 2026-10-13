@@ -22,6 +22,8 @@ def output(*args):
 
 
 def validate_root():
+    if output('findmnt', '-n', '-o', 'FSTYPE', '/') != 'ext4':
+        raise RuntimeError('Esta release requiere una partición raíz ext4.')
     source = output('findmnt', '-n', '-o', 'SOURCE', '/')
     if not re.fullmatch(r'/dev/(?:nvme[0-9]+n[0-9]+p[0-9]+|mmcblk[0-9]+p[0-9]+|sd[a-z]+[0-9]+)', source):
         raise RuntimeError(f'Formato de partición raíz no soportado: {source}')
